@@ -1,4 +1,5 @@
-﻿using System;
+﻿using RoadCamTest3.ViewModels;
+using System;
 using System.IO;
 using System.Windows;
 using System.Windows.Controls;
@@ -12,10 +13,11 @@ namespace RoadCamTest3
             InitializeComponent();
             SetWebBrowserCompatiblityLevel();
             this.Loaded += MainWindow_Loaded;
+            DataContext = new MainViewModel();
         }
         private async void MainWindow_Loaded(object sender, RoutedEventArgs e)
         {
-            string htmlFilePath = "C://Users/OMEN/source/repos/RoadCamTest3/RoadCamTest3/Map.html";
+            string htmlFilePath = "C:/Users/PahomovND/source/repos/RoadCamTest3/RoadCamTest3/Map.html";
 
             
             await webView2.EnsureCoreWebView2Async(null);

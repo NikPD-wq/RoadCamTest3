@@ -1,79 +1,105 @@
 <!DOCTYPE html>
-<html lang="ru">
+<html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Маршруты 2ГИС</title>
-    <script src="https://maps.api.2gis.ru/2.0/loader.js?pkg=full&key=97a52fc6-6506-4b41-8b40-2c71d3397567"></script>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>2GIS Navi API</title>
+    <meta name="description" content="Navi API directions example" />
     <style>
-        #map {
-            width: 100%;
-            height: 1000px;
+        html,
+        body,
+        #container {
+            margin: 0;
+            width: 160%;
+            height: 160%;
+            overflow: hidden;
         }
+
+        #reset {
+            padding: 4px 10px;
+            background: #00a81f;
+            border-radius: 4px;
+            box-shadow: 0 1px 3px 0 rgba(38, 38, 38, 0.5);
+            border: none;
+            color: #fff;
+            font-size: 13px;
+            cursor: pointer;
+        }
+
+            #reset:disabled {
+                background: #f2f2f2;
+                color: #6e6d6d;
+                cursor: default;
+            }
     </style>
 </head>
 <body>
-    <div id="map"></div>
+    <div id="container"></div>
+    <script src="https://mapgl.2gis.com/api/js/v1"></script>
+    <script src="https://unpkg.com/@2gis/mapgl-directions@^2/dist/directions.js"></script>
     <script>
-        document.addEventListener("DOMContentLoaded", function () {
-            // Инициализация карты
-            DG.then(function () {
-                const map = DG.map('map', {
-                    center: [55.0415, 82.9346], 
-                    zoom: 13
+        const map = new mapgl.Map('container', {
+            center: [82.891969,55.004795],
+            zoom: 13,
+            key: '97a52fc6-6506-4b41-8b40-2c71d3397567',
+        });
+
+        const directions = new mapgl.Directions(map, {
+            directionsApiKey: '97a52fc6-6506-4b41-8b40-2c71d3397567',
+        });
+        const markers = [];
+
+        let firstPoint;
+        let secondPoint;
+        let selecting = 'a';
+        const buttonText = ['Выберете начальную и конечную точку маршрута', 'Сброс маршрута'];
+
+        const controlsHtml = `<button id="reset" disabled>${buttonText[0]}</button> `;
+        new mapgl.Control(map, controlsHtml, {
+            position: 'topLeft',
+        });
+        const resetButton = document.getElementById('reset');
+
+        resetButton.addEventListener('click', function () {
+            selecting = 'a';
+            firstPoint = undefined;
+            secondPoint = undefined;
+            directions.clear();
+            this.disabled = true;
+            this.textContent = buttonText[0];
+        });
+
+        map.on('click', (e) => {
+            const coords = e.lngLat;
+
+            if (selecting != 'end') {
+                markers.push(
+                    new mapgl.Marker(map, {
+                        coordinates: coords,
+                        icon: 'https://docs.2gis.com/img/dotMarker.svg',
+                    }),
+                );
+            }
+
+            if (selecting === 'a') {
+                firstPoint = coords;
+                selecting = 'b';
+            } else if (selecting === 'b') {
+                secondPoint = coords;
+                selecting = 'end';
+            }
+
+            
+            if (firstPoint && secondPoint) {
+                directions.carRoute({
+                    points: [firstPoint, secondPoint],
                 });
-
-                
-                function buildRoute(start, end) {
-                   
-                    const apiUrl = `https://routing.api.2gis.com/carrouting/6.0.0/global?key=97a52fc6-6506-4b41-8b40-2c71d3397567`;
-
-                    
-                    const body = {
-                        points: [
-                            { type: "break", x: start[1], y: start[0] },
-                            { type: "break", x: end[1], y: end[0] }
-                        ]
-                    };
-
-                    fetch(apiUrl, {
-                        method: "POST",
-                        headers: {
-                            "Content-Type": "application/json"
-                        },
-                        body: JSON.stringify(body)
-                    })
-                        .then(response => response.json())
-                        .then(data => {
-                            
-                            if (data && data.routes && data.routes.length > 0) {
-                                const coordinates = data.routes[0].geometry;
-
-                                
-                                const route = DG.polyline(
-                                    coordinates.map(coord => [coord.y, coord.x]),
-                                    { color: 'blue', weight: 5 }
-                                );
-
-                                
-                                route.addTo(map);
-
-                                
-                                const bounds = DG.latLngBounds(
-                                    coordinates.map(coord => [coord.y, coord.x])
-                                );
-                                map.fitBounds(bounds);
-                            } else {
-                                alert("Ошибка построении маршрута.");
-                            }
-                        })
-                        .catch(err => console.error("Ошибка при запросе маршрута:", err));
-                }
-
-
-                
-                buildRoute(start, end);
-            });
+                markers.forEach((m) => {
+                    m.destroy();
+                });
+                resetButton.disabled = false;
+                resetButton.textContent = buttonText[1];
+            }
         });
     </script>
 </body>
